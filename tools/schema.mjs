@@ -70,7 +70,8 @@ for (const { p, lastmod } of pages) {
       author: AUTHOR, publisher: AUTHOR,
     };
     if (d.image) main.image = d.image;
-    if (lastmod) main.dateModified = lastmod;
+    // дата из sitemap (сборка считает её по UTC) → полный формат с часовым поясом, как просит Google
+    if (lastmod) main.dateModified = /T/.test(lastmod) ? lastmod : lastmod + "T00:00:00Z";
     graph = [main, {
       "@type": "BreadcrumbList", "@id": url + "#breadcrumbs",
       itemListElement: crumbs.map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.name, item: c.item })),
