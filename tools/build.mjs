@@ -189,11 +189,20 @@ for (const p of oldRoutes) if (!pages[p]) report.removed.push(p);
 // ---------- 6. sitemap ----------
 const inMap = Object.keys(pages).filter((p) => canon(p) === p);
 inMap.sort((a, b) => (a.split("/").length - b.split("/").length) || (a < b ? -1 : 1));
+// lastmod: дата сборки только у новых страниц и у тех, где изменился текст или заголовок;
+// остальные сохраняют прежнюю дату из старого sitemap, чтобы поисковик видел честные даты
+const oldMod = {};
+const oldMapFile = path.join(OLD, "sitemap.xml");
+if (fs.existsSync(oldMapFile))
+  for (const m of fs.readFileSync(oldMapFile, "utf8").matchAll(/<loc>([^<]+)<\/loc><lastmod>([^<]+)<\/lastmod>/g)) oldMod[m[1].replace(ORIGIN, "")] = m[2];
+const touched = new Set([...report.created, ...report.bodyChanged, ...report.titleChanged.map((t) => t[0])]);
+const lastmod = (p) => (!touched.has(p) && oldMod[p]) || TODAY;
 fs.writeFileSync(path.join(OUT, "sitemap.xml"),
   '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-  inMap.map((p) => `<url><loc>${ORIGIN}${p}</loc><lastmod>${TODAY}</lastmod></url>`).join("\n") + "\n</urlset>\n");
+  inMap.map((p) => `<url><loc>${ORIGIN}${p}</loc><lastmod>${lastmod(p)}</lastmod></url>`).join("\n") + "\n</urlset>\n");
 
 report.version = VER; report.pages = Object.keys(pages).length; report.sitemap = inMap.length;
+report.lastmodToday = inMap.filter((p) => lastmod(p) === TODAY).length;
 report.needOg = Object.keys(pages).filter((p) => p !== "/" && canon(p) === p && !fs.existsSync(path.join(OUT, "og", slug(p) + ".jpg")));
 fs.writeFileSync(path.join(OUT, "..", "build-report.json"), JSON.stringify(report, null, 1));
 console.log(JSON.stringify({ ...report, bodyChanged: report.bodyChanged.length, h1less: report.h1less.length }, null, 1));
