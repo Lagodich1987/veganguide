@@ -15,6 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: mkdir _site && unzip -q site.zip -d _site
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/schema.mjs _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
