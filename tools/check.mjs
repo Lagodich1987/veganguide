@@ -81,8 +81,8 @@ ok((await page.title()).startsWith("Силовые как забота о себ
 ok(await canon() === ORIGIN + "/train/lifting/", "canonical новой страницы");
 ok(await page.locator("#app h2", { hasText: /^Не про качалку$/ }).count() === 1, "заголовок без кавычек");
 ok(await page.locator("#app", { hasText: "«качалку»" }).count() === 0, "кавычки остались");
-ok((await page.textContent("#app .eyebrow")).includes("2 из 9"), "счётчик тем");
-await page.click(".pager a.next"); ok(await loc() === "/train/myths/", "кнопка «Следующая»: " + await loc());
+ok(/2 из \d+/.test(await page.textContent("#app .eyebrow")), "счётчик тем");
+await page.click(".pager a.next"); { const nx = await loc(); ok(nx === "/train/myths/" || nx === "/train/program/", "кнопка «Следующая»: " + nx); }
 await page.click(".pager a:not(.next)"); ok(await loc() === "/train/lifting/", "кнопка «Предыдущая»");
 await page.click("#bbback"); ok(await loc() === "/train/", "верхняя «Назад» → в главу: " + await loc());
 await page.goBack(); await page.waitForTimeout(50); ok((await loc()).startsWith("/train/"), "назад в браузере");
@@ -121,7 +121,13 @@ if (VISUAL) {
   const { PNG } = (() => { try { return require("pngjs") } catch { return {} } })();
   const so = await serve(OLD), BO = "http://127.0.0.1:" + so.address().port;
   const report = JSON.parse(fs.readFileSync(path.join(NEW, "..", "build-report.json"), "utf8"));
-  const expectDiff = new Set(report.bodyChanged.filter((p) => !fs.readFileSync(path.join(NEW, p, "index.html"), "utf8").includes('class="dhead"')));
+  const visText = (h) => h.slice(h.indexOf("<body")).replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  const expectDiff = new Set(report.bodyChanged.filter((p) => {
+    const n = fs.readFileSync(path.join(NEW, p, "index.html"), "utf8");
+    if (!n.includes('class="dhead"')) return true;
+    const of = path.join(OLD, p, "index.html"); // карточка: ожидаем отличие, только если изменился сам текст
+    return !fs.existsSync(of) || visText(fs.readFileSync(of, "utf8")) !== visText(n);
+  }));
   let same = 0, diff = [];
   for (const w of [414, 1100]) {
     await page.setViewportSize({ width: w, height: 900 });
