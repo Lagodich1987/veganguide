@@ -8,5 +8,5 @@ import { fileURLToPath } from "node:url";
 const DIR = process.argv[2];
 if (!DIR) throw new Error("укажи папку сайта");
 const here = path.dirname(fileURLToPath(import.meta.url));
-for (const step of ["schema.mjs", "fonts.mjs"])
+for (const step of ["overrides.mjs", "schema.mjs", "fonts.mjs"])
   execFileSync(process.execPath, [path.join(here, step), DIR], { stdio: "inherit" });
